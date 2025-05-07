@@ -9,9 +9,55 @@ def main():
     """
 
     body = """
-    for row in cur:
-        if row['quant'] > 10:
-            _global.append(row)
+    input_file = "./input.txt"
+    phi_components = {}
+    
+    with open(input_file, 'r') as f:
+        lines = f.readlines()
+        
+    section = None
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        if line == "SELECT ATTRIBUTE(S):":
+            section = "select"
+            phi_components["select"] = []
+            continue
+        elif line == "NUMBER OF GROUPING VARIABLES(n):":
+            section = "num_vars"
+            continue
+        elif line == "GROUPING ATTRIBUTES(V):":
+            section = "group_attrs"
+            phi_components["group_attrs"] = []
+            continue
+        elif line == "F-VECT([F]):":
+            section = "agg_funcs"
+            phi_components["agg_funcs"] = []
+            continue
+        elif line == "SELECT CONDITION-VECT([σ]):" or line == "SELECT CONDITION-VECT([C]):":
+            section = "conditions"
+            phi_components["conditions"] = []
+            continue
+        elif line == "HAVING_CONDITION(G):":
+            section = "having"
+            continue
+            
+        if section == "select":
+            phi_components["select"] = [attr.strip() for attr in line.split(',')]
+        elif section == "num_vars":
+            phi_components["num_vars"] = int(line)
+        elif section == "group_attrs":
+            phi_components["group_attrs"] = [attr.strip() for attr in line.split(',')]
+        elif section == "agg_funcs":
+            phi_components["agg_funcs"] = [func.strip() for func in line.split(',')]
+        elif section == "conditions":
+            phi_components["conditions"].append(line.strip())
+        elif section == "having":
+            phi_components["having"] = line.strip()
+
+
     """
 
     # Note: The f allows formatting with variables.
