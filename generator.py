@@ -41,7 +41,7 @@ def main():
                 #^ splitting aggregate wrong, could just be from my queries, but should be gnum, func, col <-matches Project (Spring 2025)***
 
 
-                if gnum != gv_num or col != attr.strip():
+                if gnum != gv_num or col != attr.strip(): #breaks if we have multiple predicates e.g. year, state -> only one will get passed through or both get broken.
                     continue
                     # Skip if current aggregate isn't for the current grouping variable
                 if func == 'sum':
@@ -77,7 +77,7 @@ def main():
         if operator == '!=': return row[g1] != row[g2]
 
     if G != 'None':
-        parts = G.split() # will throw error if no spaces between input
+        parts = G.split() # will throw error if no spaces between input -> maybe regex moment? -> re.findall(r"[A-Za-z0-9_.]+")
         temp = {}
         g1, op, g2 = parts[0], parts[1], parts[2]
         for k, v in mf_struct.items():
@@ -98,6 +98,7 @@ def main():
     for k, v in mf_struct.items():
         new_row = k.split('_') + [v.get(f, None) for f in F]
         _global.append(new_row)
+        # global needs to be dict for tabulate to work
     """
 
     # Note: The f allows formatting with variables.
