@@ -9,55 +9,94 @@ def main():
     """
 
     body = """
-    input_file = "./input.txt"
-    phi_components = {}
-    
-    with open(input_file, 'r') as f:
-        lines = f.readlines()
-        
-    section = None
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        if line == "SELECT ATTRIBUTE(S):":
-            section = "select"
-            phi_components["select"] = []
-            continue
-        elif line == "NUMBER OF GROUPING VARIABLES(n):":
-            section = "num_vars"
-            continue
-        elif line == "GROUPING ATTRIBUTES(V):":
-            section = "group_attrs"
-            phi_components["group_attrs"] = []
-            continue
-        elif line == "F-VECT([F]):":
-            section = "agg_funcs"
-            phi_components["agg_funcs"] = []
-            continue
-        elif line == "SELECT CONDITION-VECT([σ]):" or line == "SELECT CONDITION-VECT([C]):":
-            section = "conditions"
-            phi_components["conditions"] = []
-            continue
-        elif line == "HAVING_CONDITION(G):":
-            section = "having"
-            continue
-            
-        if section == "select":
-            phi_components["select"] = [attr.strip() for attr in line.split(',')]
-        elif section == "num_vars":
-            phi_components["num_vars"] = int(line)
-        elif section == "group_attrs":
-            phi_components["group_attrs"] = [attr.strip() for attr in line.split(',')]
-        elif section == "agg_funcs":
-            phi_components["agg_funcs"] = [func.strip() for func in line.split(',')]
-        elif section == "conditions":
-            phi_components["conditions"].append(line.strip())
-        elif section == "having":
-            phi_components["having"] = line.strip()
+    import re
 
+    _global = []
 
+    with open('query.txt', 'r') as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+
+    S = lines[0].split(',')
+    n = int(lines[1])
+    V = lines[2].split(',')
+    F = lines[3].split(',')
+    * = lines[4].split(',')
+    G = lines[5]
+
+    mf_struct = {}
+    avg_dict = {}
+
+    for row in cur:
+        gb_attr = '_'.join(str(row[attr]) for attr in V)
+        if gb_attr not in mf_struct:
+            mf_struct[gb_attr] = {}
+            #Initalize dictionary for the group by attribute
+        for pred in *:
+            gv, rest = pred.split('.', 1)
+            attr, val = rest.split('=')
+            gv_num = gv.strip()
+            #Parses conditions in the list of predicates
+            if str(row[attr.strip()]) != val.strip():
+                continue
+            for agg in F:
+                func, gnum, col = agg.split('_')
+                if gnum != gv_num or col != attr.strip():
+                    continue
+                    # Skip if current aggregate isn't for the current grouping variable
+                if func == 'sum':
+                    mf_struct[gb_attr][agg] = mf_struct[gb_attr].get(agg, 0) + row[col]
+                    #Increment total sum
+                elif func == 'count':
+                    mf_struct[gb_attr][agg] = mf_struct[gb_attr].get(agg, 0) + 1
+                    #Increment count by 1
+                elif func == 'min':
+                    mf_struct[gb_attr][agg] = min(mf_struct[gb_attr].get(agg, row[col]), row[col])
+                    #Store minimum value
+                elif func == 'max':
+                    mf_struct[gb_attr][agg] = max(mf_struct[gb_attr].get(agg, row[col]), row[col])
+                    #Store maximum value
+                elif func == 'avg':
+                    if gb_attr not in avg_dict:
+                        avg_dict[gb_attr] = {}
+                    if agg not in avg_dict[gb_attr]:
+                        avg_dict[gb_attr][agg] = {'sum': row[col], 'count': 1}
+                    else:
+                        avg_dict[gb_attr][agg]['sum'] += row[col]
+                        avg_dict[gb_attr][agg]['count'] += 1
+                    mf_struct[gb_attr][agg] = avg_dict[gb_attr][agg]['sum'] / avg_dict[gb_attr][agg]['count']
+                    # Update tracking of count and sum; then calculate the average
+
+    def check(g1, operator, g2, row):
+        #
+        if operator == '<': return row[g1] < row[g2]
+        if operator == '>': return row[g1] > row[g2]
+        if operator == '<=': return row[g1] <= row[g2]
+        if operator == '>=': return row[g1] >= row[g2]
+        if operator == '==': return row[g1] == row[g2]
+        if operator == '!=': return row[g1] != row[g2]
+
+    if G != 'None':
+        parts = G.split()
+        temp = {}
+        g1, op, g2 = parts[0], parts[1], parts[2]
+        for k, v in mf_struct.items():
+            if check(g1, op, g2, v):
+                temp[k] = v
+        for i in range(3, len(parts), 4):
+            andor, g1, op, g2 = parts[i:i+4]
+            if andor == 'or':
+                for k, v in mf_struct.items():
+                    if check(g1, op, g2, v):
+                        temp[k] = v
+            elif andor == 'and':
+                for k in list(temp):
+                    if not check(g1, op, g2, temp[k]):
+                        temp.pop(k)
+        mf_struct = temp
+
+    for k, v in mf_struct.items():
+        new_row = k.split('_') + [v.get(f, None) for f in F]
+        _global.append(new_row)
     """
 
     # Note: The f allows formatting with variables.
