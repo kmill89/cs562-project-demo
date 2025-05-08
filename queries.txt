@@ -1,0 +1,85 @@
+-------------------------------
+Sample Queries for Testing
+-------------------------------
+
+Q1 – 2023 totals by state
+select  state,
+        sum(x.quant)
+from    sales
+group by state : x
+such that x.year = 2023
+having  sum(x.quant) > 1000;
+
+
+state, 1_sum_quant
+1
+state
+1_sum_quant
+1.year=2023
+1_sum_quant > 1000
+
+-------------------------------
+
+Q2 – customers whose 2024 NJ purchases exceed NY purchases
+select  cust,
+        sum(x.quant),      
+        sum(y.quant)      
+from    sales
+group by cust : x, y
+such that x.year = 2024
+       and x.state = 'NJ'
+       and y.year = 2024
+       and y.state = 'NY'
+having  sum(x.quant) > sum(y.quant);
+
+
+cust, 1_sum_quant, 2_sum_quant
+2
+cust
+1_sum_quant, 2_sum_quant
+1.year=2024,1.state=NJ,2.year=2024,2.state=NY
+1_sum_quant > 2_sum_quant
+
+-------------------------------
+
+Q3 – track growth over three consecutive years
+select  prod,
+        sum(x.quant),
+        sum(y.quant),
+        sum(z.quant)
+from    sales
+group by prod : x, y, z
+such that x.year = 2018
+       and y.year = 2019
+       and z.year = 2020
+having  sum(z.quant) > 1.2 * sum(x.quant);
+
+
+prod, 1_sum_quant, 2_sum_quant, 3_sum_quant
+3
+prod
+1_sum_quant, 2_sum_quant, 3_sum_quant
+1.year=2018,2.year=2019,3.year=2020
+3_sum_quant > 1.2 * 1_sum_quant
+
+-------------------------------
+
+Q4 – avg vs max across successive years
+select  cust,
+        prod,
+        avg(x.quant),   
+        max(y.quant)   
+from    sales
+group by cust, prod : x, y
+such that x.year = 2020
+       and y.year = 2019
+having  avg(x.quant) < 0.5 * max(y.quant);
+
+cust, prod, 1_avg_count, 2_max_quant
+2
+cust, prod
+1_avg_count, 1_sum_quant, 1_count_quant, 2_max_count  #has both sum and count because of average
+1.year=2020,2.year=2019
+1_avg_quant < 0.5 * 2_max_quant
+
+
