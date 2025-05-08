@@ -14,11 +14,11 @@ def main():
     with open('query.txt', 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    S = lines[0].split(',')
+    S = lines[0].strip().split(',')
     n = int(lines[1])
-    V = lines[2].split(',')
-    F = lines[3].split(',')
-    P_List = lines[4].split(',')
+    V = lines[2].strip().split(',')
+    F = lines[3].strip().split(',')
+    P_List = lines[4].strip().split(',')
     G = lines[5]
 
     mf_struct = {}
@@ -38,6 +38,9 @@ def main():
                 continue
             for agg in F:
                 func, gnum, col = agg.split('_')
+                #^ splitting aggregate wrong, could just be from my queries, but should be gnum, func, col <-matches Project (Spring 2025)***
+
+
                 if gnum != gv_num or col != attr.strip():
                     continue
                     # Skip if current aggregate isn't for the current grouping variable
@@ -74,7 +77,7 @@ def main():
         if operator == '!=': return row[g1] != row[g2]
 
     if G != 'None':
-        parts = G.split()
+        parts = G.split() # will throw error if no spaces between input
         temp = {}
         g1, op, g2 = parts[0], parts[1], parts[2]
         for k, v in mf_struct.items():
