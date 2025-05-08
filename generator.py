@@ -20,7 +20,7 @@ def main():
     n = int(lines[1])
     V = lines[2].split(',')
     F = lines[3].split(',')
-    * = lines[4].split(',')
+    P_List = lines[4].split(',')
     G = lines[5]
 
     mf_struct = {}
@@ -31,7 +31,7 @@ def main():
         if gb_attr not in mf_struct:
             mf_struct[gb_attr] = {}
             #Initalize dictionary for the group by attribute
-        for pred in *:
+        for pred in P_List:
             gv, rest = pred.split('.', 1)
             attr, val = rest.split('=')
             gv_num = gv.strip()
@@ -138,7 +138,7 @@ if "__main__" == __name__:
     # Write the generated code to a file
     open("_generated.py", "w").write(tmp)
     # Execute the generated code
-    subprocess.run(["python", "_generated.py"])
+    subprocess.run(["python3", "_generated.py"])
 
 
 if "__main__" == __name__:
