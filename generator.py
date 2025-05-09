@@ -14,11 +14,11 @@ def main():
     with open('query.txt', 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    S = lines[0].strip().split(',')
+    S = [t.strip() for t in lines[0].split(',')]
     n = int(lines[1])
-    V = lines[2].strip().split(',')
-    F = lines[3].strip().split(',')
-    P_List = lines[4].strip().split(',')
+    V = [t.strip() for t in lines[2].split(',')]
+    F = [t.strip() for t in lines[3].split(',')]
+    P_List = [t.strip() for t in lines[4].split(',')]
     G = lines[5]
 
     # break down the predicates
@@ -55,7 +55,7 @@ def main():
                 try:
                     gnum, func, col = tag.split('_', 2)
                 except ValueError:
-                    raise ValueError(f"bad aggregate tag: "{tag}"")
+                    raise ValueError(f"bad aggregate tag: '{tag}'")
                 if gnum != gv_num:
                     continue
 
