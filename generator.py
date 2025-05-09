@@ -10,7 +10,7 @@ def main():
 
     body = """
     import re
-
+    # read the query file
     with open('query.txt', 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
@@ -21,9 +21,17 @@ def main():
     P_List = lines[4].strip().split(',')
     G = lines[5]
 
+    # break down the predicates
+    pred_map = {}
+    for pred in P_List:
+        gv, rest = pred.split('.', 1)
+        pred_map.setdefault(gv.strip(), []).append(rest.strip())
+
+    
     mf_struct = {}
     avg_dict = {}
 
+    #run through the first scan
     for row in cur:
         gb_attr = '_'.join(str(row[attr]) for attr in V)
         if gb_attr not in mf_struct:
@@ -37,7 +45,7 @@ def main():
             if str(row[attr.strip()]) != val.strip():
                 continue
             for agg in F:
-                func, gnum, col = agg.split('_')
+                gnum, func, col = agg.split('_')
                 #^ splitting aggregate wrong, could just be from my queries, but should be gnum, func, col <-matches Project (Spring 2025)***
 
 
@@ -77,7 +85,8 @@ def main():
         if operator == '!=': return row[g1] != row[g2]
 
     if G != 'None':
-        parts = G.split() # will throw error if no spaces between input -> maybe regex moment? -> re.findall(r"[A-Za-z0-9_.]+")
+        token_pattern = r"[A-Za-z0-9_\.]+|>=|<=|!=|==|[><=+*/()-]"
+        parts = re.finall(token_pattern, G) 
         temp = {}
         g1, op, g2 = parts[0], parts[1], parts[2]
         for k, v in mf_struct.items():
@@ -96,8 +105,9 @@ def main():
         mf_struct = temp
 
     for k, v in mf_struct.items():
-        new_row = k.split('_') + [v.get(f, None) for f in F]
-        _global.append(new_row)
+        key_vals = dict(zip(V, k.split('_')))
+        row_dict = {**key_vals, **v}
+        _global.append(row_dict)
         # global needs to be dict for tabulate to work
     """
 
