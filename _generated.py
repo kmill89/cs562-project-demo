@@ -22,64 +22,68 @@ def query():
     _global = []
     
     import re
-
-    _global = []
-
+    # read the query file
     with open('query.txt', 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    S = lines[0].split(',')
+    S = lines[0].strip().split(',')
     n = int(lines[1])
-    V = lines[2].split(',')
-    F = lines[3].split(',')
-    P_List = lines[4].split(',')
+    V = lines[2].strip().split(',')
+    F = lines[3].strip().split(',')
+    P_List = lines[4].strip().split(',')
     G = lines[5]
 
+    # break down the predicates
+    pred_map = {}
+    for pred in P_List:
+        gv, rest = pred.split('.', 1)
+        pred_map.setdefault(gv.strip(), []).append(rest.strip())
+
+    
     mf_struct = {}
     avg_dict = {}
 
+    #run through the first scan
     for row in cur:
-        gb_attr = '_'.join(str(row[attr]) for attr in V)
-        if gb_attr not in mf_struct:
-            mf_struct[gb_attr] = {}
-            #Initalize dictionary for the group by attribute
-        for pred in P_List:
-            gv, rest = pred.split('.', 1)
-            attr, val = rest.split('=')
-            gv_num = gv.strip()
-            #Parses conditions in the list of predicates
-            if str(row[attr.strip()]) != val.strip():
-                continue
-            for agg in F:
-                func, gnum, col = agg.split('_')
-                if gnum != gv_num or col != attr.strip():
-                    continue
-                    # Skip if current aggregate isn't for the current grouping variable
-                if func == 'sum':
-                    mf_struct[gb_attr][agg] = mf_struct[gb_attr].get(agg, 0) + row[col]
-                    #Increment total sum
-                elif func == 'count':
-                    mf_struct[gb_attr][agg] = mf_struct[gb_attr].get(agg, 0) + 1
-                    #Increment count by 1
-                elif func == 'min':
-                    mf_struct[gb_attr][agg] = min(mf_struct[gb_attr].get(agg, row[col]), row[col])
-                    #Store minimum value
-                elif func == 'max':
-                    mf_struct[gb_attr][agg] = max(mf_struct[gb_attr].get(agg, row[col]), row[col])
-                    #Store maximum value
-                elif func == 'avg':
-                    if gb_attr not in avg_dict:
-                        avg_dict[gb_attr] = {}
-                    if agg not in avg_dict[gb_attr]:
-                        avg_dict[gb_attr][agg] = {'sum': row[col], 'count': 1}
-                    else:
-                        avg_dict[gb_attr][agg]['sum'] += row[col]
-                        avg_dict[gb_attr][agg]['count'] += 1
-                    mf_struct[gb_attr][agg] = avg_dict[gb_attr][agg]['sum'] / avg_dict[gb_attr][agg]['count']
-                    # Update tracking of count and sum; then calculate the average
+        gb_attr = '_'.join(str(row[attr]) for attr in V) #key for MF
+        mf_struct.setdefault(gb_attr, {}) #creates row if it doesn't exist
 
+        for gv_num, preds in pred_map.items():
+        # all predicates of this gv must pass
+            ok = True
+            for p in preds:
+                attr, val = p.split('=')
+                attr, val = attr.strip(), val.strip().strip("'\"'")
+                comp = str(row[attr]) if not val.isdigit() else row[attr]
+                val  = val if not val.isdigit() else int(val)
+                if comp != val:
+                    ok = False
+                    break
+            if not ok:
+                continue
+                
+
+            # update every aggregate that belongs to this gv_num
+            for tag in F:
+                gnum, func, col = tag.split('_', 2)
+                if gnum != gv_num:
+                    continue
+
+                if func == 'sum':
+                    mf_struct[gb_attr][tag] = mf_struct[gb_attr].get(tag, 0) + row[col]
+                elif func == 'count':
+                    mf_struct[gb_attr][tag] = mf_struct[gb_attr].get(tag, 0) + 1
+                elif func == 'min':
+                    mf_struct[gb_attr][tag] = min(mf_struct[gb_attr].get(tag, row[col]), row[col])
+                elif func == 'max':
+                    mf_struct[gb_attr][tag] = max(mf_struct[gb_attr].get(tag, row[col]), row[col])
+                elif func == 'avg':
+                    ad  = avg_dict.setdefault(gb_attr, {}).setdefault(tag, {'sum':0, 'cnt':0})
+                    ad['sum'] += row[col]; ad['cnt'] += 1
+                    mf_struct[gb_attr][tag] = ad['sum'] / ad['cnt']
+
+    #look at having attr
     def check(g1, operator, g2, row):
-        #
         if operator == '<': return row[g1] < row[g2]
         if operator == '>': return row[g1] > row[g2]
         if operator == '<=': return row[g1] <= row[g2]
@@ -88,7 +92,8 @@ def query():
         if operator == '!=': return row[g1] != row[g2]
 
     if G != 'None':
-        parts = G.split()
+        token_pattern = r"[A-Za-z0-9_\.]+|>=|<=|!=|==|[><=+*/()-]"
+        parts = re.findall(token_pattern, G) 
         temp = {}
         g1, op, g2 = parts[0], parts[1], parts[2]
         for k, v in mf_struct.items():
@@ -106,9 +111,15 @@ def query():
                         temp.pop(k)
         mf_struct = temp
 
+    # for output
     for k, v in mf_struct.items():
-        new_row = k.split('_') + [v.get(f, None) for f in F]
-        _global.append(new_row)
+        key_dict = dict(zip(V, key.split('_')))
+        row = {**key_dict, **aggs}
+        #   ensure every column in S is present even if missing
+        for col in S:
+            row.setdefault(col, None)
+        _global.append(row)
+        # global needs to be dict for tabulate to work
     
     
     return tabulate.tabulate(_global,
