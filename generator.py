@@ -52,7 +52,10 @@ def main():
 
             # update every aggregate that belongs to this gv_num
             for tag in F:
-                gnum, func, col = tag.split('_', 2)
+                try:
+                    gnum, func, col = tag.split('_', 2)
+                except ValueError:
+                    raise ValueError(f"bad aggregate tag: "{tag}"")
                 if gnum != gv_num:
                     continue
 
@@ -65,7 +68,7 @@ def main():
                 elif func == 'max':
                     mf_struct[gb_attr][tag] = max(mf_struct[gb_attr].get(tag, row[col]), row[col])
                 elif func == 'avg':
-                    ad  = avg_dict.setdefault(gb_attr, {}).setdefault(tag, {'sum':0, 'cnt':0})
+                    ad = avg_dict.setdefault(gb_attr, {}).setdefault(tag, {'sum':0, 'cnt':0})
                     ad['sum'] += row[col]; ad['cnt'] += 1
                     mf_struct[gb_attr][tag] = ad['sum'] / ad['cnt']
 
