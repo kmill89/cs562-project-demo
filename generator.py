@@ -10,94 +10,92 @@ def main():
 
     body = """
     import re
-
+    # read the query file
     with open('query.txt', 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    S = lines[0].strip().split(',')
+    S = [t.strip() for t in lines[0].split(',')]
     n = int(lines[1])
-    V = lines[2].strip().split(',')
-    F = lines[3].strip().split(',')
-    P_List = lines[4].strip().split(',')
+    V = [t.strip() for t in lines[2].split(',')]
+    F = [t.strip() for t in lines[3].split(',')]
+    P_List = [t.strip() for t in lines[4].split(',')]
     G = lines[5]
 
+    # break down the predicates
+    pred_map = {}
+    for pred in P_List:
+        gv, rest = pred.split('.', 1)
+        pred_map.setdefault(gv.strip(), []).append(rest.strip())
+
+    
     mf_struct = {}
     avg_dict = {}
 
+    #run through the first scan
     for row in cur:
-        gb_attr = '_'.join(str(row[attr]) for attr in V)
-        if gb_attr not in mf_struct:
-            mf_struct[gb_attr] = {}
-            #Initalize dictionary for the group by attribute
-        for pred in P_List:
-            gv, rest = pred.split('.', 1)
-            attr, val = rest.split('=')
-            gv_num = gv.strip()
-            #Parses conditions in the list of predicates
-            if str(row[attr.strip()]) != val.strip():
+        gb_attr = '_'.join(str(row[attr]) for attr in V) #key for MF
+        
+
+        for gv_num, preds in pred_map.items():
+            # all predicates of this gv must pass
+            ok = True
+            for p in preds:
+                attr, val = p.split('=', 1)
+                attr = attr.strip()
+                val = val.strip().strip("'\\\"")
+                if str(row[attr]) != val:
+                    ok = False
+                    break
+            mf_struct.setdefault(gb_attr, {})
+            if not ok:
                 continue
-            for agg in F:
-                func, gnum, col = agg.split('_')
-                #^ splitting aggregate wrong, could just be from my queries, but should be gnum, func, col <-matches Project (Spring 2025)***
+                
 
-
-                if gnum != gv_num or col != attr.strip(): #breaks if we have multiple predicates e.g. year, state -> only one will get passed through or both get broken.
+            # update every aggregate that belongs to this gv_num
+            for tag in F:
+                try:
+                    gnum, func, col = tag.split('_', 2)
+                except ValueError:
+                    raise ValueError(f"bad aggregate tag: {tag!r}")
+                if gnum != gv_num:
                     continue
-                    # Skip if current aggregate isn't for the current grouping variable
+
                 if func == 'sum':
-                    mf_struct[gb_attr][agg] = mf_struct[gb_attr].get(agg, 0) + row[col]
-                    #Increment total sum
+                    mf_struct[gb_attr][tag] = mf_struct[gb_attr].get(tag, 0) + row[col]
                 elif func == 'count':
-                    mf_struct[gb_attr][agg] = mf_struct[gb_attr].get(agg, 0) + 1
-                    #Increment count by 1
+                    mf_struct[gb_attr][tag] = mf_struct[gb_attr].get(tag, 0) + 1
                 elif func == 'min':
-                    mf_struct[gb_attr][agg] = min(mf_struct[gb_attr].get(agg, row[col]), row[col])
-                    #Store minimum value
+                    mf_struct[gb_attr][tag] = min(mf_struct[gb_attr].get(tag, row[col]), row[col])
                 elif func == 'max':
-                    mf_struct[gb_attr][agg] = max(mf_struct[gb_attr].get(agg, row[col]), row[col])
-                    #Store maximum value
+                    mf_struct[gb_attr][tag] = max(mf_struct[gb_attr].get(tag, row[col]), row[col])
                 elif func == 'avg':
-                    if gb_attr not in avg_dict:
-                        avg_dict[gb_attr] = {}
-                    if agg not in avg_dict[gb_attr]:
-                        avg_dict[gb_attr][agg] = {'sum': row[col], 'count': 1}
-                    else:
-                        avg_dict[gb_attr][agg]['sum'] += row[col]
-                        avg_dict[gb_attr][agg]['count'] += 1
-                    mf_struct[gb_attr][agg] = avg_dict[gb_attr][agg]['sum'] / avg_dict[gb_attr][agg]['count']
-                    # Update tracking of count and sum; then calculate the average
+                    ad = avg_dict.setdefault(gb_attr, {}).setdefault(tag, {'sum':0, 'cnt':0})
+                    ad['sum'] += row[col]; ad['cnt'] += 1
+                    mf_struct[gb_attr][tag] = ad['sum'] / ad['cnt']
 
-    def check(g1, operator, g2, row):
-        #
-        if operator == '<': return row[g1] < row[g2]
-        if operator == '>': return row[g1] > row[g2]
-        if operator == '<=': return row[g1] <= row[g2]
-        if operator == '>=': return row[g1] >= row[g2]
-        if operator == '==': return row[g1] == row[g2]
-        if operator == '!=': return row[g1] != row[g2]
+    #look at HAVING attr
+    if G.lower() != 'none':
+        tag_pattern = r'\\b\\d+_[A-Za-z0-9_]+\\b'
+        expr = re.sub(tag_pattern, lambda m: f'v[{m.group(0)!r}]', G)
 
-    if G != 'None':
-        parts = G.split() # will throw error if no spaces between input -> maybe regex moment? -> re.findall(r"[A-Za-z0-9_.]+")
-        temp = {}
-        g1, op, g2 = parts[0], parts[1], parts[2]
+        passed = {}
         for k, v in mf_struct.items():
-            if check(g1, op, g2, v):
-                temp[k] = v
-        for i in range(3, len(parts), 4):
-            andor, g1, op, g2 = parts[i:i+4]
-            if andor == 'or':
-                for k, v in mf_struct.items():
-                    if check(g1, op, g2, v):
-                        temp[k] = v
-            elif andor == 'and':
-                for k in list(temp):
-                    if not check(g1, op, g2, temp[k]):
-                        temp.pop(k)
-        mf_struct = temp
+            try:
+                if eval(expr, {"__builtins__": None}, {"v": v}):
+                    passed[k] = v
+            except Exception:
+                # any errors get treated as false
+                pass
+        mf_struct = passed
 
-    for k, v in mf_struct.items():
-        new_row = k.split('_') + [v.get(f, None) for f in F]
-        _global.append(new_row)
+    # for output
+    for k, aggs in mf_struct.items():
+        key_dict = dict(zip(V, k.split('_')))
+        row = {**key_dict, **aggs}
+        #   ensure every column in S is present even if missing
+        for col in S:
+            row.setdefault(col, None)
+        _global.append(row)
         # global needs to be dict for tabulate to work
     """
 
