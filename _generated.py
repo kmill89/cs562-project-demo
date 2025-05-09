@@ -54,7 +54,7 @@ def query():
             for p in preds:
                 attr, val = p.split('=', 1)
                 attr = attr.strip()
-                val = val.strip().strip("'"")
+                val = val.strip().strip("'\"")
                 if str(row[attr]) != val:
                     ok = False
                     break
@@ -87,7 +87,7 @@ def query():
 
     #look at HAVING attr
     if G.lower() != 'none':
-        tag_pattern = r'\d+_[A-Za-z0-9_]+'
+        tag_pattern = r'\b\d+_[A-Za-z0-9_]+\b'
         expr = re.sub(tag_pattern, lambda m: f'v[{m.group(0)!r}]', G)
 
         passed = {}

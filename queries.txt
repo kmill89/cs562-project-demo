@@ -78,7 +78,7 @@ having  avg(x.quant) < 0.5 * max(y.quant);
 cust, prod, 1_avg_count, 2_max_quant
 2
 cust, prod
-1_avg_count, 1_sum_quant, 1_count_quant, 2_max_count  #has both sum and count because of average
+1_avg_quant, 1_sum_quant, 1_count_quant, 2_max_quant
 1.year=2020,2.year=2019
 1_avg_quant < 0.5 * 2_max_quant
 
