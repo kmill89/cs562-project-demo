@@ -37,12 +37,12 @@ def main():
         
 
         for gv_num, preds in pred_map.items():
-        # all predicates of this gv must pass
+            # all predicates of this gv must pass
             ok = True
             for p in preds:
                 attr, val = p.split('=', 1)
                 attr = attr.strip()
-                val = val.strip().strip("'\"")
+                val = val.strip().strip("'\\\"")
                 if str(row[attr]) != val:
                     ok = False
                     break
@@ -73,22 +73,24 @@ def main():
                     ad['sum'] += row[col]; ad['cnt'] += 1
                     mf_struct[gb_attr][tag] = ad['sum'] / ad['cnt']
 
-    #look at having attr
+    #look at HAVING attr
     if G.lower() != 'none':
+        tag_pattern = r'\\b\\d+_[A-Za-z0-9_]+\\b'
+        expr = re.sub(tag_pattern, lambda m: f'v[{m.group(0)!r}]', G)
+
         passed = {}
         for k, v in mf_struct.items():
             try:
-                # v holds all aggregate tags for this group; they become variables
-                if eval(G, {}, v):
+                if eval(expr, {"__builtins__": None}, {"v": v}):
                     passed[k] = v
-            except NameError:
-                # a variable in G not present for this row ⇒ treat as False
+            except Exception:
+                # any errors get treated as false
                 pass
         mf_struct = passed
 
     # for output
     for k, aggs in mf_struct.items():
-        key_dict = dict(zip(aggs, k.split('_')))
+        key_dict = dict(zip(V, k.split('_')))
         row = {**key_dict, **aggs}
         #   ensure every column in S is present even if missing
         for col in S:
