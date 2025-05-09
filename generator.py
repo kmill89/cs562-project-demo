@@ -75,16 +75,16 @@ def main():
 
     #look at having attr
     if G.lower() != 'none':
-    passed = {}
-    for k, v in mf_struct.items():
-        try:
-            # v holds all aggregate tags for this group; they become variables
-            if eval(G, {}, v):
-                passed[k] = v
-        except NameError:
-            # a variable in G not present for this row ⇒ treat as False
-            pass
-    mf_struct = passed
+        passed = {}
+        for k, v in mf_struct.items():
+            try:
+                # v holds all aggregate tags for this group; they become variables
+                if eval(G, {}, v):
+                    passed[k] = v
+            except NameError:
+                # a variable in G not present for this row ⇒ treat as False
+                pass
+        mf_struct = passed
 
     # for output
     for k, aggs in mf_struct.items():
