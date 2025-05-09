@@ -34,7 +34,7 @@ def main():
     #run through the first scan
     for row in cur:
         gb_attr = '_'.join(str(row[attr]) for attr in V) #key for MF
-        mf_struct.setdefault(gb_attr, {}) #creates row if it doesn't exist
+        
 
         for gv_num, preds in pred_map.items():
         # all predicates of this gv must pass
@@ -46,6 +46,7 @@ def main():
                 if str(row[attr]) != val:
                     ok = False
                     break
+            mf_struct.setdefault(gb_attr, {})
             if not ok:
                 continue
                 
@@ -55,7 +56,7 @@ def main():
                 try:
                     gnum, func, col = tag.split('_', 2)
                 except ValueError:
-                    raise ValueError(f"bad aggregate tag: '{tag}'")
+                    raise ValueError(f"bad aggregate tag: {tag!r}")
                 if gnum != gv_num:
                     continue
 
@@ -73,37 +74,21 @@ def main():
                     mf_struct[gb_attr][tag] = ad['sum'] / ad['cnt']
 
     #look at having attr
-    def check(g1, operator, g2, row):
-        if operator == '<': return row[g1] < row[g2]
-        if operator == '>': return row[g1] > row[g2]
-        if operator == '<=': return row[g1] <= row[g2]
-        if operator == '>=': return row[g1] >= row[g2]
-        if operator == '==': return row[g1] == row[g2]
-        if operator == '!=': return row[g1] != row[g2]
-
-    if G != 'None':
-        token_pattern = r"[A-Za-z0-9_\.]+|>=|<=|!=|==|[><=+*/()-]"
-        parts = re.findall(token_pattern, G) 
-        temp = {}
-        g1, op, g2 = parts[0], parts[1], parts[2]
-        for k, v in mf_struct.items():
-            if check(g1, op, g2, v):
-                temp[k] = v
-        for i in range(3, len(parts), 4):
-            andor, g1, op, g2 = parts[i:i+4]
-            if andor == 'or':
-                for k, v in mf_struct.items():
-                    if check(g1, op, g2, v):
-                        temp[k] = v
-            elif andor == 'and':
-                for k in list(temp):
-                    if not check(g1, op, g2, temp[k]):
-                        temp.pop(k)
-        mf_struct = temp
+    if G.lower() != 'none':
+    passed = {}
+    for k, v in mf_struct.items():
+        try:
+            # v holds all aggregate tags for this group; they become variables
+            if eval(G, {}, v):
+                passed[k] = v
+        except NameError:
+            # a variable in G not present for this row ⇒ treat as False
+            pass
+    mf_struct = passed
 
     # for output
     for k, aggs in mf_struct.items():
-        key_dict = dict(zip(V, k.split('_')))
+        key_dict = dict(zip(aggs, k.split('_')))
         row = {**key_dict, **aggs}
         #   ensure every column in S is present even if missing
         for col in S:
