@@ -10,8 +10,9 @@ def main():
 
     body = """
     import re
+    
     # read the query file
-    with open('query.txt', 'r') as f:
+    with open('query2.txt', 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
     S = [t.strip() for t in lines[0].split(',')]
@@ -89,6 +90,11 @@ def main():
         mf_struct = passed
 
     # for output
+    mf_struct = {
+        k: {agg: v[agg] for agg in F if agg in v}
+        for k, v in sorted(mf_struct.items())
+    }
+
     for k, aggs in mf_struct.items():
         key_dict = dict(zip(V, k.split('_')))
         row = {**key_dict, **aggs}

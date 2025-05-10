@@ -1,6 +1,0 @@
-cust, 1_avg_quant, 1_count_quant
-1
-cust
-1_avg_quant, 1_count_quant
-1.year=2020
-1_avg_quant > 50
