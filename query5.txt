@@ -1,0 +1,6 @@
+cust,1_avg_quant,2_avg_quant
+2
+cust
+1_avg_quant,2_avg_quant
+1.month=1,2.month=2
+1_avg_quant < 2_avg_quant

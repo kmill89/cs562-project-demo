@@ -1,6 +1,6 @@
-cust,state,sum_1_quant,sum_2_quant
-2
+cust,state,1_sum_quant,2_sum_quant,3_sum_quant
+3
 cust,state
-sum_1_quant,sum_2_quant
-1.year=2020,2.year=2021
-sum_2_quant > sum_1_quant
+1_sum_quant,2_sum_quant,3_sum_quant
+1.month=1,2.month=2,3.month=3
+1_sum_quant > 100 or 2_sum_quant > 100 or 3_sum_quant > 100

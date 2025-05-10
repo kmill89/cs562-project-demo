@@ -71,25 +71,51 @@ ORDER BY cust, state;
 """
 
 query_4 = """
-WITH d10 AS (
-    SELECT cust, year, COUNT(*) AS "1_count_quant"
-    FROM sales
-    WHERE day = 10
-    GROUP BY cust, year
+WITH jan AS (
+  SELECT cust, state, SUM(quant) AS "1_sum_quant"
+  FROM sales
+  WHERE month = 1
+  GROUP BY cust, state
 ),
-y22 AS (
-    SELECT cust, year, SUM(quant) AS "2_sum_quant"
-    FROM sales
-    WHERE year = 2022
-    GROUP BY cust, year
+feb AS (
+  SELECT cust, state, SUM(quant) AS "2_sum_quant"
+  FROM sales
+  WHERE month = 2
+  GROUP BY cust, state
+),
+mar AS (
+  SELECT cust, state, SUM(quant) AS "3_sum_quant"
+  FROM sales
+  WHERE month = 3
+  GROUP BY cust, state
 )
 SELECT *
-FROM d10
-NATURAL JOIN y22
-WHERE "2_sum_quant" > 1000
-ORDER BY cust, year;
+FROM jan
+NATURAL JOIN feb
+NATURAL JOIN mar
+WHERE "1_sum_quant" > 100 OR "2_sum_quant" > 100 OR "3_sum_quant" > 100
+ORDER BY cust, state;
 """
 
+query_5 = """
+WITH jan AS (
+  SELECT cust, AVG(quant) AS "1_avg_quant"
+  FROM sales
+  WHERE month = 1
+  GROUP BY cust
+),
+feb AS (
+  SELECT cust, AVG(quant) AS "2_avg_quant"
+  FROM sales
+  WHERE month = 2
+  GROUP BY cust
+)
+SELECT *
+FROM jan
+NATURAL JOIN feb
+WHERE "1_avg_quant" < "2_avg_quant"
+ORDER BY cust;
+"""
 
 def query():
     """
@@ -105,7 +131,7 @@ def query():
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
     #cur.execute("SELECT * FROM sales WHERE quant > 10")
-    cur.execute(query_4)
+    cur.execute(query_5)
 
     return tabulate.tabulate(cur.fetchall(),
                              headers="keys", tablefmt="psql")
