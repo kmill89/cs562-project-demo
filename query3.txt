@@ -1,6 +1,6 @@
-cust,1_avg_quant
-1
-cust
-1_avg_quant
-1.year=2020
-1_avg_quant > 80
+cust,state,1_min_quant,2_max_quant
+2
+cust,state
+1_min_quant,2_max_quant
+1.month=3,2.month=5
+None

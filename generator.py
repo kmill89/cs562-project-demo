@@ -12,7 +12,7 @@ def main():
     import re
     
     # read the query file
-    with open('query2.txt', 'r') as f:
+    with open('query4.txt', 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
     S = [t.strip() for t in lines[0].split(',')]

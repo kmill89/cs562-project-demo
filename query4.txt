@@ -1,0 +1,6 @@
+cust,state,sum_1_quant,sum_2_quant
+2
+cust,state
+sum_1_quant,sum_2_quant
+1.year=2020,2.year=2021
+sum_2_quant > sum_1_quant

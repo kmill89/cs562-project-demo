@@ -1,6 +1,6 @@
-cust,1_sum_quant,2_sum_quant
+cust,prod,1_avg_quant,2_avg_quant
 2
-cust
-1_sum_quant,2_sum_quant
-1.year=2020,2.year=2021
-2_sum_quant > 1_sum_quant
+cust,prod
+1_avg_quant,2_avg_quant
+1.state=NY,2.state=CT
+2_avg_quant > 1_avg_quant
