@@ -12,7 +12,7 @@ A mini ad-hoc OLAP query-processing engine that reads an MF query description, a
 ## Quick Start Guide
 
 1. Clone / download the repo: <br>
-`git clone [https://github.com/your-handle/kmill89-cs562-project-demo](https://github.com/kmill89/cs562-project-demo)` <br>
+`git clone https://github.com/kmill89/cs562-project-demo` <br>
 
 2. Navigate to folder: <br>
 `cd cs562-project-demo`
